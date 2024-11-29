@@ -47,12 +47,27 @@ android {
 spotless {
   val ktfmtVersion = "0.43"
   kotlin {
-    target("src/**/*.kt")
+    target("**/*.kt")
+    targetExclude("build/")
     ktfmt(ktfmtVersion).googleStyle()
   }
   kotlinGradle {
     target("**/*.gradle.kts")
+    targetExclude("build/")
     ktfmt(ktfmtVersion).googleStyle()
+  }
+  json {
+    target("**/*.json")
+    targetExclude("build/")
+    simple().indentWithSpaces(2)
+  }
+  yaml {
+    target("**/*.yaml")
+    targetExclude("build/")
+    jackson()
+      .yamlFeature("INDENT_ARRAYS", true)
+      .yamlFeature("MINIMIZE_QUOTES", true)
+      .yamlFeature("WRITE_DOC_START_MARKER", false)
   }
 }
 
