@@ -8,6 +8,10 @@ plugins {
   val kotlinVersion = "1.9.24"
   kotlin("android") version kotlinVersion
   kotlin("plugin.serialization") version kotlinVersion
+
+  // The following code in this "plugins" block can be omitted from customer
+  // facing documentation.
+  id("com.diffplug.spotless") version "7.0.0.BETA4"
 }
 
 dependencies {
@@ -19,13 +23,29 @@ dependencies {
   implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.7.3")
 }
 
+// The remaining code in this file can be omitted from customer facing
+// documentation. It's here just to make things compile and/or configure
+// optional components of the build (e.g. spotless code formatting).
+
 android {
   namespace = "com.google.firebase.example.dataconnect"
   compileSdk = 35
   defaultConfig {
-      minSdk = 21
-      targetSdk = 35
-      versionCode = 1
-      versionName = "1.0"
+    minSdk = 21
+    targetSdk = 35
+    versionCode = 1
+    versionName = "1.0"
+  }
+}
+
+spotless {
+  val ktfmtVersion = "0.43"
+  kotlin {
+    target("src/**/*.kt")
+    ktfmt(ktfmtVersion).googleStyle()
+  }
+  kotlinGradle {
+    target("**/*.gradle.kts")
+    ktfmt(ktfmtVersion).googleStyle()
   }
 }
