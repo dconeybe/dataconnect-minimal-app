@@ -28,7 +28,7 @@ dependencies {
 // optional components of the build (e.g. spotless code formatting).
 
 android {
-  namespace = "com.google.firebase.example.dataconnect"
+  namespace = "com.google.firebase.dataconnect.minimaldemo"
   compileSdk = 35
   defaultConfig {
     minSdk = 21

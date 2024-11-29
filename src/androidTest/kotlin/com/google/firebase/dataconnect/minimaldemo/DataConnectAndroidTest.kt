@@ -1,4 +1,4 @@
-package com.google.firebase.example.dataconnect
+package com.google.firebase.dataconnect.minimaldemo
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Test
