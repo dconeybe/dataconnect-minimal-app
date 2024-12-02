@@ -20,3 +20,6 @@ internal fun Task.deleteDirectory(directory: File) {
 private class CreateDirectoryFailed(message: String) : Exception(message)
 
 private class DeleteDirectoryFailed(message: String) : Exception(message)
+
+internal fun String.uppercaseFirstChar(): String =
+  if (isEmpty()) this else "${this[0].uppercase()}${this.substring(1)}"

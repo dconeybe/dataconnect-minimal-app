@@ -1,7 +1,3 @@
-import com.google.firebase.dataconnect.minimaldemo.gradle.CopyDirectoryTask
-import com.google.firebase.dataconnect.minimaldemo.gradle.DataConnectGenerateSourcesTask
-import org.gradle.kotlin.dsl.support.uppercaseFirstChar
-
 plugins {
   // Use whichever versions of these plugins suit your application.
   // The versions shown here were taken from the Android Studio application
@@ -16,6 +12,7 @@ plugins {
   // The following code in this "plugins" block can be omitted from customer
   // facing documentation.
   id("com.diffplug.spotless") version "7.0.0.BETA4"
+  id("DataConnectMinimalAppPlugin")
 }
 
 dependencies {
@@ -79,30 +76,4 @@ dependencies {
   testImplementation("junit:junit:4.13.2")
   androidTestImplementation("androidx.test.ext:junit:1.2.1")
   androidTestImplementation("androidx.test:runner:1.6.2")
-}
-
-val dataConnectTaskGroupName = "Firebase Data Connect"
-
-val dataConnectGenerateSourcesTask =
-  tasks.register<DataConnectGenerateSourcesTask>("dataConnectGenerateSources") {
-    group = dataConnectTaskGroupName
-    inputDirectory = file("firebase")
-    outputDirectory = file("dataConnectGeneratedSources")
-    nodeExecutable = providers.gradleProperty("dataConnect.nodeExecutable").map { file(it) }
-    workDirectory = layout.buildDirectory.dir(name)
-    firebaseCommand = providers.gradleProperty("dataConnect.firebaseExecutable").orElse("firebase")
-  }
-
-androidComponents.onVariants { variant ->
-  val copyTaskName = "dataConnectCopy${variant.name.uppercaseFirstChar()}GenerateSources"
-  val copyTask =
-    tasks.register<CopyDirectoryTask>(copyTaskName) {
-      group = dataConnectTaskGroupName
-      description =
-        "Copy the generated Data Connect Kotlin SDK sources into the " +
-          "generated code directory for the \"${variant.name}\" variant."
-      srcDirectory = dataConnectGenerateSourcesTask.flatMap { it.outputDirectory }
-    }
-
-  variant.sources.java!!.addGeneratedSourceDirectory(copyTask, CopyDirectoryTask::destDirectory)
 }

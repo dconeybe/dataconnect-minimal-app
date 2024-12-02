@@ -5,4 +5,14 @@ plugins {
 
 java { toolchain { languageVersion.set(JavaLanguageVersion.of(17)) } }
 
-dependencies { compileOnly("com.android.tools.build:gradle-api:8.7.3") }
+dependencies { implementation("com.android.tools.build:gradle-api:8.7.3") }
+
+gradlePlugin {
+  plugins {
+    register("dataConnectPlugin") {
+      id = "DataConnectMinimalAppPlugin"
+      implementationClass =
+        "com.google.firebase.dataconnect.minimaldemo.gradle.DataConnectMinimalAppPlugin"
+    }
+  }
+}
