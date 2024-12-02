@@ -1,3 +1,8 @@
+import com.android.build.api.variant.ApplicationAndroidComponentsExtension
+import java.nio.charset.StandardCharsets
+import org.jetbrains.kotlin.incremental.createDirectory
+import org.jetbrains.kotlin.incremental.deleteRecursivelyOrThrow
+
 plugins {
   // Use whichever versions of these plugins suit your application.
   // The versions shown here were taken from the Android Studio application
@@ -12,7 +17,6 @@ plugins {
   // The following code in this "plugins" block can be omitted from customer
   // facing documentation.
   id("com.diffplug.spotless") version "7.0.0.BETA4"
-  id("DataConnectMinimalAppPlugin")
 }
 
 dependencies {
@@ -76,4 +80,152 @@ dependencies {
   testImplementation("junit:junit:4.13.2")
   androidTestImplementation("androidx.test.ext:junit:1.2.1")
   androidTestImplementation("androidx.test:runner:1.6.2")
+}
+
+abstract class DataConnectGenerateSourcesTask : DefaultTask() {
+
+  @get:InputDirectory abstract val inputDirectory: DirectoryProperty
+
+  @get:OutputDirectory abstract val outputDirectory: DirectoryProperty
+
+  @get:Internal abstract val nodeExecutableDirectory: DirectoryProperty
+
+  @get:Internal abstract val firebaseCommand: Property<String>
+
+  @get:Internal abstract val workDirectory: DirectoryProperty
+
+  @get:Inject protected abstract val execOperations: ExecOperations
+
+  @get:Inject protected abstract val providerFactory: ProviderFactory
+
+  @get:Inject protected abstract val fileSystemOperations: FileSystemOperations
+
+  @TaskAction
+  fun run() {
+    val inputDirectory: File = inputDirectory.get().asFile
+    val outputDirectory: File = outputDirectory.get().asFile
+    val nodeExecutableDirectory: File? = nodeExecutableDirectory.orNull?.asFile
+    val firebaseCommand: String? = firebaseCommand.orNull
+    val workDirectory: File = workDirectory.get().asFile
+
+    outputDirectory.deleteRecursivelyOrThrow()
+    outputDirectory.createDirectory()
+    workDirectory.deleteRecursivelyOrThrow()
+    workDirectory.createDirectory()
+
+    fileSystemOperations.copy {
+      from(inputDirectory)
+      into(workDirectory)
+    }
+
+    val newPath: String? =
+      if (nodeExecutableDirectory === null) {
+        null
+      } else {
+        val nodeExecutableDirectoryAbsolutePath = nodeExecutableDirectory.absolutePath
+        val oldPath = providerFactory.environmentVariable("PATH").orNull
+        if (oldPath === null) {
+          nodeExecutableDirectoryAbsolutePath
+        } else {
+          nodeExecutableDirectoryAbsolutePath + File.pathSeparator + oldPath
+        }
+      }
+
+    val logFile =
+      if (logger.isInfoEnabled) {
+        null
+      } else {
+        File(workDirectory, "dataconnect.sdk.generate.log.txt")
+      }
+
+    val execResult =
+      logFile?.outputStream().use { logStream ->
+        execOperations.runCatching {
+          exec {
+            commandLine(firebaseCommand ?: "firebase", "--debug", "dataconnect:sdk:generate")
+            workingDir(workDirectory)
+            isIgnoreExitValue = false
+            if (newPath !== null) {
+              environment("PATH", newPath)
+            }
+            if (logStream !== null) {
+              standardOutput = logStream
+              errorOutput = logStream
+            }
+          }
+        }
+      }
+
+    execResult.onFailure { exception ->
+      logFile?.readText(StandardCharsets.UTF_8)?.lines()?.forEach { line ->
+        logger.warn("{}", line.trimEnd())
+      }
+      throw exception
+    }
+  }
+}
+
+abstract class CopyDirectoryTask : DefaultTask() {
+
+  @get:InputDirectory abstract val srcDirectory: DirectoryProperty
+
+  @get:OutputDirectory abstract val destDirectory: DirectoryProperty
+
+  @get:Inject protected abstract val fileSystemOperations: FileSystemOperations
+
+  @TaskAction
+  fun run() {
+    val srcDirectory: File = srcDirectory.get().asFile
+    val destDirectory: File = destDirectory.get().asFile
+
+    logger.info("srcDirectory: {}", srcDirectory.absolutePath)
+    logger.info("destDirectory: {}", destDirectory.absolutePath)
+
+    destDirectory.deleteRecursivelyOrThrow()
+    destDirectory.createDirectory()
+
+    fileSystemOperations.copy {
+      from(srcDirectory)
+      into(destDirectory)
+    }
+  }
+}
+
+run {
+  val dataConnectTaskGroupName = "Firebase Data Connect Minimal App"
+  val projectDirectory = layout.projectDirectory
+
+  val generateSourcesTask =
+    tasks.register<DataConnectGenerateSourcesTask>("dataConnectGenerateSources") {
+      group = dataConnectTaskGroupName
+      description =
+        "Run firebase dataconnect:sdk:generate to generate the Data Connect Kotlin SDK sources"
+
+      inputDirectory = projectDirectory.dir("firebase")
+      outputDirectory = projectDirectory.dir("dataConnectGeneratedSources")
+
+      nodeExecutableDirectory =
+        project.providers.gradleProperty("dataConnect.minimalApp.nodeExecutableDirectory").map {
+          projectDirectory.dir(it)
+        }
+      firebaseCommand = project.providers.gradleProperty("dataConnect.minimalApp.firebaseCommand")
+
+      workDirectory = layout.buildDirectory.dir(name)
+    }
+
+  val androidComponents = extensions.getByType<ApplicationAndroidComponentsExtension>()
+  androidComponents.onVariants { variant ->
+    val variantNameTitleCase = variant.name[0].uppercase() + variant.name.substring(1)
+    val copyTaskName = "dataConnectCopy${variantNameTitleCase}GenerateSources"
+    val copyTask =
+      tasks.register<CopyDirectoryTask>(copyTaskName) {
+        group = dataConnectTaskGroupName
+        description =
+          "Copy the generated Data Connect Kotlin SDK sources into the " +
+            "generated code directory for the \"${variant.name}\" variant."
+        srcDirectory = generateSourcesTask.flatMap { it.outputDirectory }
+      }
+
+    variant.sources.java!!.addGeneratedSourceDirectory(copyTask, CopyDirectoryTask::destDirectory)
+  }
 }
