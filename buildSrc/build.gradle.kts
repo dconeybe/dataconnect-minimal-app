@@ -5,4 +5,4 @@ plugins {
 
 java { toolchain { languageVersion.set(JavaLanguageVersion.of(17)) } }
 
-dependencies { compileOnly("com.android.tools.build:gradle-api:8.7.2") }
+dependencies { compileOnly("com.android.tools.build:gradle-api:8.7.3") }

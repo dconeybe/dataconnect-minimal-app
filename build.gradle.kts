@@ -8,7 +8,7 @@ plugins {
   // template as of the time of writing (November 29, 2024).
   // Note, however, that the version of kotlin("plugin.serialization") _must_,
   // in general, match the version of kotlin("android").
-  id("com.android.application") version "8.7.2"
+  id("com.android.application") version "8.7.3"
   val kotlinVersion = "1.9.24"
   kotlin("android") version kotlinVersion
   kotlin("plugin.serialization") version kotlinVersion
