@@ -20,3 +20,17 @@ mutation InsertItem(
   })
 }
 
+query GetItemByKey(
+  $key: zwda6x9zyy_Key!
+) @auth(level: PUBLIC) {
+  item: zwda6x9zyy(key: $key) {
+    string
+    int
+    int64
+    float
+    boolean
+    date
+    timestamp
+    any
+  }
+}

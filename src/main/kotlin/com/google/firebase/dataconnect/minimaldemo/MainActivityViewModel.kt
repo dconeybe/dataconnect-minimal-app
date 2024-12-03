@@ -7,8 +7,10 @@ import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.AP
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.google.firebase.dataconnect.minimaldemo.connector.GetItemByKeyQuery
 import com.google.firebase.dataconnect.minimaldemo.connector.Zwda6x9zyyKey
 import com.google.firebase.dataconnect.minimaldemo.connector.execute
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -19,34 +21,39 @@ import kotlinx.coroutines.flow.asStateFlow
 
 class MainActivityViewModel(private val app: MyApplication) : ViewModel() {
 
-  private val _insertJob = MutableStateFlow<InsertJobState>(InsertJobState.New)
-  val insertJob: StateFlow<InsertJobState> = _insertJob.asStateFlow()
+  private val _state = MutableStateFlow(State())
+  val state: StateFlow<State> = _state.asStateFlow()
 
   fun insertItem() {
     while (true) {
-      val oldState =
-        when (val oldState = _insertJob.value) {
-          is InsertJobState.Active -> break
-          is InsertJobState.New,
-          is InsertJobState.Completed -> oldState
+      val oldState = _state.value
+      when (oldState.insertItem) {
+        is State.OperationState.InProgress -> return
+        is State.OperationState.New,
+        is State.OperationState.Completed -> Unit
+      }
+
+      val job: Deferred<Zwda6x9zyyKey> =
+        viewModelScope.async(start = CoroutineStart.LAZY) {
+          app.getConnector().insertItem.execute {}.data.key
         }
+      val inProgressState = State.OperationState.InProgress(nextSequenceNumber(), null, job)
+      val newState = oldState.copy(insertItem = inProgressState)
 
-      val newState =
-        InsertJobState.Active(
-          viewModelScope.async(start = CoroutineStart.LAZY) {
-            app.getConnector().insertItem.execute {}.data.key
-          }
-        )
-
-      if (_insertJob.compareAndSet(oldState, newState)) {
-        newState.start()
+      if (_state.compareAndSet(oldState, newState)) {
+        newState.startInsert(inProgressState)
         break
       }
     }
   }
 
   @OptIn(ExperimentalCoroutinesApi::class)
-  private fun InsertJobState.Active.start() {
+  private fun State.startInsert(
+    inProgressState: State.OperationState.InProgress<Nothing?, Zwda6x9zyyKey>
+  ) {
+    require(inProgressState === insertItem)
+    val job = inProgressState.job
+
     job.start()
 
     job.invokeOnCompletion { exception ->
@@ -59,16 +66,52 @@ class MainActivityViewModel(private val app: MyApplication) : ViewModel() {
           Log.w(TAG, "successfully inserted item with key: $insertedKey")
           Result.success(insertedKey)
         }
-      _insertJob.compareAndSet(this@start, InsertJobState.Completed(result))
+
+      while (true) {
+        val oldState = _state.value
+        if (oldState.insertItem !== inProgressState) {
+          break
+        }
+        val newState =
+          oldState.copy(
+            insertItem =
+              State.OperationState.Completed(
+                nextSequenceNumber(),
+                inProgressState.variables,
+                result,
+              )
+          )
+        if (_state.compareAndSet(oldState, newState)) {
+          break
+        }
+      }
     }
   }
 
-  sealed interface InsertJobState {
-    data object New : InsertJobState
+  data class State(
+    val insertItem: OperationState<Nothing?, Zwda6x9zyyKey> = OperationState.New,
+    val getItem: OperationState<Zwda6x9zyyKey, GetItemByKeyQuery.Data.Item?> = OperationState.New,
+  ) {
+    sealed interface OperationState<out Variables, out Data> {
+      sealed interface SequencedOperationState<out Variables, out Data> :
+        OperationState<Variables, Data> {
+        val sequenceNumber: Long
+      }
 
-    data class Active(val job: Deferred<Zwda6x9zyyKey>) : InsertJobState
+      data object New : OperationState<Nothing, Nothing>
 
-    data class Completed(val key: Result<Zwda6x9zyyKey>) : InsertJobState
+      data class InProgress<out Variables, out Data>(
+        override val sequenceNumber: Long,
+        val variables: Variables,
+        val job: Deferred<Data>,
+      ) : SequencedOperationState<Variables, Data>
+
+      data class Completed<out Variables, out Data>(
+        override val sequenceNumber: Long,
+        val variables: Variables,
+        val result: Result<Data>,
+      ) : SequencedOperationState<Variables, Data>
+    }
   }
 
   companion object {
@@ -77,5 +120,9 @@ class MainActivityViewModel(private val app: MyApplication) : ViewModel() {
     }
 
     private const val TAG = "MainActivityViewModel"
+
+    private val nextSequenceNumber = AtomicLong(0)
+
+    private fun nextSequenceNumber(): Long = nextSequenceNumber.incrementAndGet()
   }
 }
