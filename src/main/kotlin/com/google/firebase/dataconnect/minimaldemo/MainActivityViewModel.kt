@@ -63,7 +63,7 @@ class MainActivityViewModel(private val app: MyApplication) : ViewModel() {
           Result.failure(exception)
         } else {
           val insertedKey = job.getCompleted()
-          Log.w(TAG, "successfully inserted item with key: $insertedKey")
+          Log.i(TAG, "successfully inserted item with key: $insertedKey")
           Result.success(insertedKey)
         }
 
@@ -75,6 +75,73 @@ class MainActivityViewModel(private val app: MyApplication) : ViewModel() {
         val newState =
           oldState.copy(
             insertItem =
+              State.OperationState.Completed(
+                nextSequenceNumber(),
+                inProgressState.variables,
+                result,
+              ),
+          )
+        if (_state.compareAndSet(oldState, newState)) {
+          break
+        }
+      }
+    }
+  }
+
+  fun getItem() {
+    while (true) {
+      val oldState = _state.value
+      if (oldState.lastInsertedKey === null) {
+        return
+      }
+      when (oldState.getItem) {
+        is State.OperationState.InProgress -> return
+        is State.OperationState.New,
+        is State.OperationState.Completed -> Unit
+      }
+
+      val job: Deferred<GetItemByKeyQuery.Data.Item?> =
+        viewModelScope.async(start = CoroutineStart.LAZY) {
+          app.getConnector().getItemByKey.execute(oldState.lastInsertedKey).data.item
+        }
+      val inProgressState = State.OperationState.InProgress(nextSequenceNumber(), oldState.lastInsertedKey, job)
+      val newState = oldState.copy(getItem = inProgressState)
+
+      if (_state.compareAndSet(oldState, newState)) {
+        newState.startGet(inProgressState)
+        break
+      }
+    }
+  }
+
+  @OptIn(ExperimentalCoroutinesApi::class)
+  private fun State.startGet(
+    inProgressState: State.OperationState.InProgress<Zwda6x9zyyKey, GetItemByKeyQuery.Data.Item?>
+  ) {
+    require(inProgressState === getItem)
+    val job = inProgressState.job
+
+    job.start()
+
+    job.invokeOnCompletion { exception ->
+      val result =
+        if (exception !== null) {
+          Log.w(TAG, "get item with ID ${inProgressState.variables.id} failed: $exception", exception)
+          Result.failure(exception)
+        } else {
+          val retrievedItem = job.getCompleted()
+          Log.i(TAG, "successfully retrieved item with ID ${inProgressState.variables.id}")
+          Result.success(retrievedItem)
+        }
+
+      while (true) {
+        val oldState = _state.value
+        if (oldState.getItem !== inProgressState) {
+          break
+        }
+        val newState =
+          oldState.copy(
+            getItem =
               State.OperationState.Completed(
                 nextSequenceNumber(),
                 inProgressState.variables,
@@ -91,6 +158,7 @@ class MainActivityViewModel(private val app: MyApplication) : ViewModel() {
   data class State(
     val insertItem: OperationState<Nothing?, Zwda6x9zyyKey> = OperationState.New,
     val getItem: OperationState<Zwda6x9zyyKey, GetItemByKeyQuery.Data.Item?> = OperationState.New,
+    val lastInsertedKey: Zwda6x9zyyKey? = null
   ) {
     sealed interface OperationState<out Variables, out Data> {
       sealed interface SequencedOperationState<out Variables, out Data> :
