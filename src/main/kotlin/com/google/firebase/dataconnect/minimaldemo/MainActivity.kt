@@ -35,7 +35,7 @@ class MainActivity : AppCompatActivity() {
         is InsertJobState.New ->
           InsertUiInfo(
             buttonEnabled = true,
-            progressText = "Press \"${viewBinding.insertItemButton.text}\" to insert an item.",
+            progressText = "Click \"${viewBinding.insertItemButton.text}\" to insert an item.",
           )
         is InsertJobState.Active ->
           InsertUiInfo(buttonEnabled = false, progressText = "Inserting an item...")

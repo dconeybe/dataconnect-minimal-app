@@ -129,6 +129,8 @@ abstract class DataConnectGenerateSourcesTask : DefaultTask() {
 
     outputDirectory.deleteRecursively()
     outputDirectory.mkdirs()
+    workDirectory.deleteRecursively()
+    workDirectory.mkdirs()
 
     val newPath: String? =
       if (nodeExecutableDirectory === null) {

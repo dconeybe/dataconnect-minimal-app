@@ -1,5 +1,6 @@
 package com.google.firebase.dataconnect.minimaldemo
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -9,6 +10,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.firebase.dataconnect.minimaldemo.connector.Ctry3q3tp6kzxConnector
 import com.google.firebase.dataconnect.minimaldemo.connector.Zwda6x9zyyKey
 import com.google.firebase.dataconnect.minimaldemo.connector.execute
+import com.google.firebase.dataconnect.minimaldemo.connector.instance
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -17,7 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class MainActivityViewModel(private val connector: Ctry3q3tp6kzxConnector) : ViewModel() {
+class MainActivityViewModel(private val app: MyApplication) : ViewModel() {
 
   private val _insertJob = MutableStateFlow<InsertJobState>(InsertJobState.New)
   val insertJob: StateFlow<InsertJobState> = _insertJob.asStateFlow()
@@ -34,7 +36,7 @@ class MainActivityViewModel(private val connector: Ctry3q3tp6kzxConnector) : Vie
       val newState =
         InsertJobState.Active(
           viewModelScope.async(start = CoroutineStart.LAZY) {
-            connector.insertItem.execute {}.data.key
+            Ctry3q3tp6kzxConnector.instance.insertItem.execute {}.data.key
           }
         )
 
@@ -52,9 +54,12 @@ class MainActivityViewModel(private val connector: Ctry3q3tp6kzxConnector) : Vie
     job.invokeOnCompletion { exception ->
       val result =
         if (exception !== null) {
+          Log.w("MainActivityViewModel", "insert item failed: $exception", exception)
           Result.failure(exception)
         } else {
-          Result.success(job.getCompleted())
+          val insertedKey = job.getCompleted()
+          Log.w("MainActivityViewModel", "successfully inserted item with key: $insertedKey")
+          Result.success(insertedKey)
         }
       _insertJob.compareAndSet(this@start, InsertJobState.Completed(result))
     }
@@ -70,10 +75,7 @@ class MainActivityViewModel(private val connector: Ctry3q3tp6kzxConnector) : Vie
 
   companion object {
     val Factory: ViewModelProvider.Factory = viewModelFactory {
-      initializer {
-        val connector = (this[APPLICATION_KEY] as MyApplication).connector
-        MainActivityViewModel(connector)
-      }
+      initializer { MainActivityViewModel(this[APPLICATION_KEY] as MyApplication) }
     }
   }
 }
