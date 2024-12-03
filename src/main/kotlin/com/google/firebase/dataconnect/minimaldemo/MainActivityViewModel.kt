@@ -7,10 +7,8 @@ import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.AP
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.google.firebase.dataconnect.minimaldemo.connector.Ctry3q3tp6kzxConnector
 import com.google.firebase.dataconnect.minimaldemo.connector.Zwda6x9zyyKey
 import com.google.firebase.dataconnect.minimaldemo.connector.execute
-import com.google.firebase.dataconnect.minimaldemo.connector.instance
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,7 +34,7 @@ class MainActivityViewModel(private val app: MyApplication) : ViewModel() {
       val newState =
         InsertJobState.Active(
           viewModelScope.async(start = CoroutineStart.LAZY) {
-            Ctry3q3tp6kzxConnector.instance.insertItem.execute {}.data.key
+            app.getConnector().insertItem.execute {}.data.key
           }
         )
 
@@ -54,11 +52,11 @@ class MainActivityViewModel(private val app: MyApplication) : ViewModel() {
     job.invokeOnCompletion { exception ->
       val result =
         if (exception !== null) {
-          Log.w("MainActivityViewModel", "insert item failed: $exception", exception)
+          Log.w(TAG, "insert item failed: $exception", exception)
           Result.failure(exception)
         } else {
           val insertedKey = job.getCompleted()
-          Log.w("MainActivityViewModel", "successfully inserted item with key: $insertedKey")
+          Log.w(TAG, "successfully inserted item with key: $insertedKey")
           Result.success(insertedKey)
         }
       _insertJob.compareAndSet(this@start, InsertJobState.Completed(result))
@@ -77,5 +75,7 @@ class MainActivityViewModel(private val app: MyApplication) : ViewModel() {
     val Factory: ViewModelProvider.Factory = viewModelFactory {
       initializer { MainActivityViewModel(this[APPLICATION_KEY] as MyApplication) }
     }
+
+    private const val TAG = "MainActivityViewModel"
   }
 }
