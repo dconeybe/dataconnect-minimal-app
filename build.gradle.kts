@@ -27,6 +27,7 @@ dependencies {
   implementation("androidx.appcompat:appcompat:1.7.0")
   implementation("androidx.activity:activity-ktx:1.9.3")
   implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
+  implementation("com.google.android.material:material:1.12.0")
 }
 
 // The remaining code in this file can be omitted from customer facing
@@ -75,6 +76,13 @@ spotless {
       .yamlFeature("INDENT_ARRAYS", true)
       .yamlFeature("MINIMIZE_QUOTES", true)
       .yamlFeature("WRITE_DOC_START_MARKER", false)
+  }
+  format("xml") {
+    target("**/*.xml")
+    targetExclude("build/")
+    trimTrailingWhitespace()
+    indentWithSpaces(2)
+    endWithNewline()
   }
 }
 

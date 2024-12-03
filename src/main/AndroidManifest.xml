@@ -4,7 +4,7 @@
 
     <application
         android:label="Data Connect Minimal Demo"
-        android:theme="@style/Theme.AppCompat"
+        android:theme="@style/Theme.AppCompat.NoActionBar"
         >
 
         <activity android:name=".MainActivity" android:exported="true">
