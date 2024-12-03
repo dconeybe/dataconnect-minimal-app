@@ -25,7 +25,8 @@ dependencies {
   // (November 29, 2024).
   implementation("com.google.firebase:firebase-dataconnect:16.0.0-beta03")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
-  implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.7.3")
+  implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.3")
+  implementation("androidx.appcompat:appcompat:1.7.0")
 }
 
 // The remaining code in this file can be omitted from customer facing
