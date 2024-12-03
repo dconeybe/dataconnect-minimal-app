@@ -1,7 +1,6 @@
 package com.google.firebase.dataconnect.minimaldemo
 
 import android.os.Bundle
-import android.util.Log
 import android.view.View.OnClickListener
 import android.widget.CompoundButton.OnCheckedChangeListener
 import androidx.activity.viewModels
@@ -11,7 +10,6 @@ import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.google.firebase.dataconnect.minimaldemo.MainActivityViewModel.InsertJobState
 import com.google.firebase.dataconnect.minimaldemo.databinding.ActivityMainBinding
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -29,9 +27,8 @@ class MainActivity : AppCompatActivity() {
     setContentView(viewBinding.root)
 
     viewBinding.insertItemButton.setOnClickListener(insertButtonOnClickListener)
-    viewBinding.debugLoggingCheckBox.setOnCheckedChangeListener(
-      debugLoggingCheckBoxOnCheckedChangeListener
-    )
+    viewBinding.useEmulatorCheckBox.setOnCheckedChangeListener(useEmulatorOnCheckedChangeListener)
+    viewBinding.debugLoggingCheckBox.setOnCheckedChangeListener(debugLoggingOnCheckedChangeListener)
 
     lifecycleScope.launch {
       viewModel.insertJob.flowWithLifecycle(lifecycle).collectLatest(::collectInsertJob)
@@ -41,8 +38,8 @@ class MainActivity : AppCompatActivity() {
   override fun onResume() {
     super.onResume()
     lifecycleScope.launch {
-      viewBinding.debugLoggingCheckBox.isChecked =
-        myApplication.isDataConnectDebugLoggingEnabled() ?: false
+      viewBinding.useEmulatorCheckBox.isChecked = myApplication.getUseDataConnectEmulator()
+      viewBinding.debugLoggingCheckBox.isChecked = myApplication.getDataConnectDebugLoggingEnabled()
     }
   }
 
@@ -77,26 +74,19 @@ class MainActivity : AppCompatActivity() {
 
   private val insertButtonOnClickListener = OnClickListener { viewModel.insertItem() }
 
-  private val debugLoggingCheckBoxOnCheckedChangeListener =
-    OnCheckedChangeListener { _, isChecked ->
-      if (!lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-        return@OnCheckedChangeListener
-      }
-      myApplication.coroutineScope
-        .async { myApplication.setDataConnectDebugLoggingEnabled(isChecked) }
-        .invokeOnCompletion { exception ->
-          if (exception !== null) {
-            Log.w(
-              TAG,
-              "WARNING: setDataConnectDebugLoggingEnabled() failed: $exception " +
-                "(error code 4vpzcz8mjg)",
-              exception,
-            )
-          }
-        }
+  private val debugLoggingOnCheckedChangeListener = OnCheckedChangeListener { _, isChecked ->
+    if (!lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+      return@OnCheckedChangeListener
     }
+    myApplication.coroutineScope.launch {
+      myApplication.setDataConnectDebugLoggingEnabled(isChecked)
+    }
+  }
 
-  companion object {
-    private const val TAG = "MainActivity"
+  private val useEmulatorOnCheckedChangeListener = OnCheckedChangeListener { _, isChecked ->
+    if (!lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+      return@OnCheckedChangeListener
+    }
+    myApplication.coroutineScope.launch { myApplication.setUseDataConnectEmulator(isChecked) }
   }
 }

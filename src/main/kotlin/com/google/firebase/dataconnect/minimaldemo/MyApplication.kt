@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -45,8 +46,19 @@ class MyApplication : Application() {
         }
     )
 
+  private val initialLogLevel = FirebaseDataConnect.logLevel
   private val connectorMutex = Mutex()
   private var connector: Ctry3q3tp6kzxConnector? = null
+
+  override fun onCreate() {
+    super.onCreate()
+
+    coroutineScope.launch {
+      if (getDataConnectDebugLoggingEnabled()) {
+        FirebaseDataConnect.logLevel = LogLevel.DEBUG
+      }
+    }
+  }
 
   suspend fun getConnector(): Ctry3q3tp6kzxConnector {
     connectorMutex.withLock {
@@ -57,10 +69,8 @@ class MyApplication : Application() {
 
       val newConnector = Ctry3q3tp6kzxConnector.instance
 
-      newConnector.dataConnect.useEmulator()
-
-      isDataConnectDebugLoggingEnabled()?.let { isEnabled ->
-        FirebaseDataConnect.logLevel = if (isEnabled) LogLevel.DEBUG else LogLevel.WARN
+      if (getUseDataConnectEmulator()) {
+        newConnector.dataConnect.useEmulator()
       }
 
       connector = newConnector
@@ -73,19 +83,40 @@ class MyApplication : Application() {
       getSharedPreferences("MyApplicationSharedPreferences", MODE_PRIVATE)
     }
 
-  suspend fun isDataConnectDebugLoggingEnabled(): Boolean? =
-    getSharedPreferences().all[SharedPrefsKeys.IS_DATA_CONNECT_LOGGING_ENABLED] as? Boolean
+  suspend fun getDataConnectDebugLoggingEnabled(): Boolean =
+    getSharedPreferences().all[SharedPrefsKeys.IS_DATA_CONNECT_LOGGING_ENABLED] as? Boolean ?: false
 
   suspend fun setDataConnectDebugLoggingEnabled(enabled: Boolean) {
+    FirebaseDataConnect.logLevel = if (enabled) LogLevel.DEBUG else initialLogLevel
+    editSharedPreferences { putBoolean(SharedPrefsKeys.IS_DATA_CONNECT_LOGGING_ENABLED, enabled) }
+  }
+
+  suspend fun getUseDataConnectEmulator(): Boolean =
+    getSharedPreferences().all[SharedPrefsKeys.IS_USE_DATA_CONNECT_EMULATOR] as? Boolean ?: true
+
+  suspend fun setUseDataConnectEmulator(enabled: Boolean) {
+    val requiresRestart = getUseDataConnectEmulator() != enabled
+    editSharedPreferences { putBoolean(SharedPrefsKeys.IS_USE_DATA_CONNECT_EMULATOR, enabled) }
+
+    if (requiresRestart) {
+      connectorMutex.withLock {
+        val oldConnector = connector
+        connector = null
+        oldConnector?.dataConnect?.close()
+      }
+    }
+  }
+
+  private suspend fun editSharedPreferences(block: SharedPreferences.Editor.() -> Unit) {
     val prefs = getSharedPreferences()
     withContext(Dispatchers.IO) {
       val editor = prefs.edit()
-      editor.putBoolean(SharedPrefsKeys.IS_DATA_CONNECT_LOGGING_ENABLED, enabled)
+      block(editor)
       if (!editor.commit()) {
         Log.w(
           TAG,
-          "WARNING: setDataConnectDebugLoggingEnabled() failed to save " +
-            "to SharedPreferences; ignoring the failure (error code wzy99s7jmy)",
+          "WARNING: failed to save changes to SharedPreferences; " +
+            "ignoring the failure (error code wzy99s7jmy)",
         )
       }
     }
@@ -98,6 +129,7 @@ class MyApplication : Application() {
 
   private object SharedPrefsKeys {
     const val IS_DATA_CONNECT_LOGGING_ENABLED = "isDataConnectDebugLoggingEnabled"
+    const val IS_USE_DATA_CONNECT_EMULATOR = "useDataConnectEmulator"
   }
 
   companion object {

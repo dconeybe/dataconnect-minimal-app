@@ -51,8 +51,19 @@
                 android:id="@+id/debugLoggingCheckBox"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Enable Data Connect debug logging?"
+                android:text="Data Connect Debug Logging"
                 app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                />
+
+            <CheckBox
+                android:id="@+id/useEmulatorCheckBox"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Use Data Connect Emulator"
+                android:layout_marginBottom="8dp"
+                app:layout_constraintBottom_toTopOf="@id/debugLoggingCheckBox"
                 app:layout_constraintLeft_toLeftOf="parent"
                 app:layout_constraintRight_toRightOf="parent"
                 />
