@@ -1,16 +1,14 @@
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import java.nio.charset.StandardCharsets
-import org.jetbrains.kotlin.incremental.createDirectory
-import org.jetbrains.kotlin.incremental.deleteRecursivelyOrThrow
 
 plugins {
-  // Use whichever versions of these plugins suit your application.
-  // The versions shown here were taken from the Android Studio application
-  // template as of the time of writing (November 29, 2024).
+  // Use whichever versions of these dependencies suit your application.
+  // The versions shown here were the latest versions as of December 03, 2024.
   // Note, however, that the version of kotlin("plugin.serialization") _must_,
   // in general, match the version of kotlin("android").
   id("com.android.application") version "8.7.3"
-  val kotlinVersion = "1.9.24"
+  id("com.google.gms.google-services") version "4.4.2"
+  val kotlinVersion = "2.1.0"
   kotlin("android") version kotlinVersion
   kotlin("plugin.serialization") version kotlinVersion
 
@@ -21,12 +19,14 @@ plugins {
 
 dependencies {
   // Use whichever versions of these dependencies suit your application.
-  // The versions shown here were the latest versions as of the time of writing
-  // (November 29, 2024).
+  // The versions shown here were the latest versions as of December 03, 2024.
   implementation("com.google.firebase:firebase-dataconnect:16.0.0-beta03")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
-  implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.3")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+  implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.7.3")
   implementation("androidx.appcompat:appcompat:1.7.0")
+  implementation("androidx.activity:activity-ktx:1.9.3")
+  implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
 }
 
 // The remaining code in this file can be omitted from customer facing
@@ -119,8 +119,8 @@ abstract class DataConnectGenerateSourcesTask : DefaultTask() {
     val firebaseCommand: String? = firebaseCommand.orNull
     val workDirectory: File = workDirectory.get().asFile
 
-    outputDirectory.deleteRecursivelyOrThrow()
-    outputDirectory.createDirectory()
+    outputDirectory.deleteRecursively()
+    outputDirectory.mkdirs()
 
     val newPath: String? =
       if (nodeExecutableDirectory === null) {
@@ -185,8 +185,8 @@ abstract class CopyDirectoryTask : DefaultTask() {
     logger.info("srcDirectory: {}", srcDirectory.absolutePath)
     logger.info("destDirectory: {}", destDirectory.absolutePath)
 
-    destDirectory.deleteRecursivelyOrThrow()
-    destDirectory.createDirectory()
+    destDirectory.deleteRecursively()
+    destDirectory.mkdirs()
 
     fileSystemOperations.copy {
       from(srcDirectory)
