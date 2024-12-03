@@ -102,7 +102,16 @@ abstract class DataConnectGenerateSourcesTask : DefaultTask() {
   @get:Inject protected abstract val fileSystemOperations: FileSystemOperations
 
   @TaskAction
-  fun run() {
+  fun run(inputChanges: InputChanges) {
+    if (inputChanges.isIncremental) {
+      val onlyLogFilesChanged =
+        inputChanges.getFileChanges(inputDirectory).all { it.file.name.endsWith(".log") }
+      if (onlyLogFilesChanged) {
+        didWork = false
+        return
+      }
+    }
+
     val inputDirectory: File = inputDirectory.get().asFile
     val outputDirectory: File = outputDirectory.get().asFile
     val nodeExecutableDirectory: File? = nodeExecutableDirectory.orNull?.asFile
@@ -111,13 +120,6 @@ abstract class DataConnectGenerateSourcesTask : DefaultTask() {
 
     outputDirectory.deleteRecursivelyOrThrow()
     outputDirectory.createDirectory()
-    workDirectory.deleteRecursivelyOrThrow()
-    workDirectory.createDirectory()
-
-    fileSystemOperations.copy {
-      from(inputDirectory)
-      into(workDirectory)
-    }
 
     val newPath: String? =
       if (nodeExecutableDirectory === null) {
@@ -144,7 +146,7 @@ abstract class DataConnectGenerateSourcesTask : DefaultTask() {
         execOperations.runCatching {
           exec {
             commandLine(firebaseCommand ?: "firebase", "--debug", "dataconnect:sdk:generate")
-            workingDir(workDirectory)
+            workingDir(inputDirectory)
             isIgnoreExitValue = false
             if (newPath !== null) {
               environment("PATH", newPath)
@@ -217,7 +219,7 @@ run {
   val androidComponents = extensions.getByType<ApplicationAndroidComponentsExtension>()
   androidComponents.onVariants { variant ->
     val variantNameTitleCase = variant.name[0].uppercase() + variant.name.substring(1)
-    val copyTaskName = "dataConnectCopy${variantNameTitleCase}GenerateSources"
+    val copyTaskName = "dataConnectCopy${variantNameTitleCase}GeneratedSources"
     val copyTask =
       tasks.register<CopyDirectoryTask>(copyTaskName) {
         group = dataConnectTaskGroupName
