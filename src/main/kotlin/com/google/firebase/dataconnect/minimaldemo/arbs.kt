@@ -20,9 +20,10 @@ import io.kotest.property.arbitrary.next
 import io.kotest.property.arbs.fooddrink.iceCreamFlavors
 import io.kotest.property.asSample
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.Month
 import java.time.Year
-import java.time.ZoneId
+import java.time.ZoneOffset
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -105,11 +106,31 @@ fun Arb.Companion.firebaseTimestamp(): Arb<Timestamp> = FirebaseTimestampArb()
 private class FirebaseTimestampArb : Arb<Timestamp>() {
 
   private val localDateArb = Arb.dataConnectLocalDate()
+  private val hourArb = Arb.int(1..23)
+  private val minuteArb = Arb.int(1..59)
+  private val secondArb = Arb.int(1..59)
+  private val nanosecondArb = Arb.int(0..999_999_999)
 
   override fun edgecase(rs: RandomSource) =
-    localDateArb.maybeEdgeCase(rs, edgeCaseProbability = 0.33f).toTimestampAtStartOfDay()
+    localDateArb
+      .maybeEdgeCase(rs, edgeCaseProbability = 0.2f)
+      .toTimestampAtTime(
+        hour = hourArb.maybeEdgeCase(rs, edgeCaseProbability = 0.2f),
+        minute = minuteArb.maybeEdgeCase(rs, edgeCaseProbability = 0.2f),
+        second = secondArb.maybeEdgeCase(rs, edgeCaseProbability = 0.2f),
+        nanosecond = nanosecondArb.maybeEdgeCase(rs, edgeCaseProbability = 0.2f),
+      )
 
-  override fun sample(rs: RandomSource) = localDateArb.next(rs).toTimestampAtStartOfDay().asSample()
+  override fun sample(rs: RandomSource) =
+    localDateArb
+      .next(rs)
+      .toTimestampAtTime(
+        hour = hourArb.next(rs),
+        minute = minuteArb.next(rs),
+        second = secondArb.next(rs),
+        nanosecond = nanosecondArb.next(rs),
+      )
+      .asSample()
 
   companion object {
 
@@ -118,9 +139,14 @@ private class FirebaseTimestampArb : Arb<Timestamp>() {
     // Android API versions less than 26.
     // See https://developer.android.com/studio/write/java8-support-table for details.
     @SuppressLint("NewApi")
-    private fun LocalDate.toTimestampAtStartOfDay(): Timestamp {
-      val zoneId = ZoneId.systemDefault()
-      val instant: Instant = toJavaLocalDate().atStartOfDay(zoneId).toInstant()
+    private fun LocalDate.toTimestampAtTime(
+      hour: Int,
+      minute: Int,
+      second: Int,
+      nanosecond: Int,
+    ): Timestamp {
+      val localDateTime: LocalDateTime = toJavaLocalDate().atTime(hour, minute, second, nanosecond)
+      val instant: Instant = localDateTime.toInstant(ZoneOffset.UTC)
       return Timestamp(instant)
     }
   }

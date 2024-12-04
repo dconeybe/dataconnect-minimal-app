@@ -49,11 +49,16 @@ class MainActivity : AppCompatActivity() {
       when (state.insertItem) {
         is OperationState.New -> Pair(null, null)
         is OperationState.InProgress ->
-          Pair("Inserting item: ${state.insertItem.variables}", state.insertItem.sequenceNumber)
+          Pair(
+            "Inserting item: ${state.insertItem.variables.toDisplayString()}",
+            state.insertItem.sequenceNumber,
+          )
         is OperationState.Completed ->
           Pair(
             state.insertItem.result.fold(
-              onSuccess = { "Inserted item: ${state.insertItem.variables} (id=${it.id})" },
+              onSuccess = {
+                "Inserted item with id=${it.id}:\n${state.insertItem.variables.toDisplayString()}"
+              },
               onFailure = { "Inserting item ${state.insertItem.variables} FAILED: $it" },
             ),
             state.insertItem.sequenceNumber,
@@ -71,7 +76,9 @@ class MainActivity : AppCompatActivity() {
         is OperationState.Completed ->
           Pair(
             state.getItem.result.fold(
-              onSuccess = { "Retrieved item with ID ${state.getItem.variables.id}: $it" },
+              onSuccess = {
+                "Retrieved item with ID ${state.getItem.variables.id}:\n${it?.toDisplayString()}"
+              },
               onFailure = { "Retrieving item with ID ${state.getItem.variables.id} FAILED: $it" },
             ),
             state.getItem.sequenceNumber,
