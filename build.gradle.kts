@@ -28,6 +28,15 @@ dependencies {
   implementation("androidx.activity:activity-ktx:1.9.3")
   implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
   implementation("com.google.android.material:material:1.12.0")
+
+  // The following code in this "dependencies" block can be omitted from customer
+  // facing documentation.
+  coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.3")
+  implementation("io.kotest:kotest-property:5.9.1")
+  implementation("io.kotest.extensions:kotest-property-arbs:2.1.2")
+  testImplementation("junit:junit:4.13.2")
+  androidTestImplementation("androidx.test.ext:junit:1.2.1")
+  androidTestImplementation("androidx.test:runner:1.6.2")
 }
 
 // The remaining code in this file can be omitted from customer facing
@@ -45,11 +54,12 @@ android {
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
   compileOptions {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    isCoreLibraryDesugaringEnabled = true
   }
-  buildFeatures { viewBinding = true }
-  kotlinOptions.jvmTarget = "11"
+  buildFeatures.viewBinding = true
+  kotlinOptions.jvmTarget = "1.8"
 }
 
 spotless {
@@ -84,12 +94,6 @@ spotless {
     indentWithSpaces(2)
     endWithNewline()
   }
-}
-
-dependencies {
-  testImplementation("junit:junit:4.13.2")
-  androidTestImplementation("androidx.test.ext:junit:1.2.1")
-  androidTestImplementation("androidx.test:runner:1.6.2")
 }
 
 abstract class DataConnectGenerateSourcesTask : DefaultTask() {

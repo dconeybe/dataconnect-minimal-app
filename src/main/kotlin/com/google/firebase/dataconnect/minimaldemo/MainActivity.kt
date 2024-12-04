@@ -49,12 +49,12 @@ class MainActivity : AppCompatActivity() {
       when (state.insertItem) {
         is OperationState.New -> Pair(null, null)
         is OperationState.InProgress ->
-          Pair("Inserting an item...", state.insertItem.sequenceNumber)
+          Pair("Inserting item: ${state.insertItem.variables}", state.insertItem.sequenceNumber)
         is OperationState.Completed ->
           Pair(
             state.insertItem.result.fold(
-              onSuccess = { "Item inserted with ID: ${it.id}" },
-              onFailure = { "Inserting item FAILED: $it" },
+              onSuccess = { "Inserted item: ${state.insertItem.variables} (id=${it.id})" },
+              onFailure = { "Inserting item ${state.insertItem.variables} FAILED: $it" },
             ),
             state.insertItem.sequenceNumber,
           )
