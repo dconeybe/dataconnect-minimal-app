@@ -79,7 +79,8 @@ class MainActivity : AppCompatActivity() {
       }
 
     viewBinding.insertItemButton.isEnabled = state.insertItem !is OperationState.InProgress
-    viewBinding.getItemButton.isEnabled = state.getItem !is OperationState.InProgress
+    viewBinding.getItemButton.isEnabled =
+      state.getItem !is OperationState.InProgress && state.lastInsertedKey !== null
 
     viewBinding.progressText.text =
       if (
@@ -94,7 +95,7 @@ class MainActivity : AppCompatActivity() {
 
   private val insertButtonOnClickListener = OnClickListener { viewModel.insertItem() }
 
-  private val getItemButtonOnClickListener = OnClickListener {}
+  private val getItemButtonOnClickListener = OnClickListener { viewModel.getItem() }
 
   private val debugLoggingOnCheckedChangeListener = OnCheckedChangeListener { _, isChecked ->
     if (!lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {

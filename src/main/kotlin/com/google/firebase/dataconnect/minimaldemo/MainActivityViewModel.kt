@@ -80,6 +80,7 @@ class MainActivityViewModel(private val app: MyApplication) : ViewModel() {
                 inProgressState.variables,
                 result,
               ),
+            lastInsertedKey = result.getOrNull() ?: oldState.lastInsertedKey,
           )
         if (_state.compareAndSet(oldState, newState)) {
           break
@@ -104,7 +105,8 @@ class MainActivityViewModel(private val app: MyApplication) : ViewModel() {
         viewModelScope.async(start = CoroutineStart.LAZY) {
           app.getConnector().getItemByKey.execute(oldState.lastInsertedKey).data.item
         }
-      val inProgressState = State.OperationState.InProgress(nextSequenceNumber(), oldState.lastInsertedKey, job)
+      val inProgressState =
+        State.OperationState.InProgress(nextSequenceNumber(), oldState.lastInsertedKey, job)
       val newState = oldState.copy(getItem = inProgressState)
 
       if (_state.compareAndSet(oldState, newState)) {
@@ -126,7 +128,11 @@ class MainActivityViewModel(private val app: MyApplication) : ViewModel() {
     job.invokeOnCompletion { exception ->
       val result =
         if (exception !== null) {
-          Log.w(TAG, "get item with ID ${inProgressState.variables.id} failed: $exception", exception)
+          Log.w(
+            TAG,
+            "get item with ID ${inProgressState.variables.id} failed: $exception",
+            exception,
+          )
           Result.failure(exception)
         } else {
           val retrievedItem = job.getCompleted()
@@ -158,7 +164,7 @@ class MainActivityViewModel(private val app: MyApplication) : ViewModel() {
   data class State(
     val insertItem: OperationState<Nothing?, Zwda6x9zyyKey> = OperationState.New,
     val getItem: OperationState<Zwda6x9zyyKey, GetItemByKeyQuery.Data.Item?> = OperationState.New,
-    val lastInsertedKey: Zwda6x9zyyKey? = null
+    val lastInsertedKey: Zwda6x9zyyKey? = null,
   ) {
     sealed interface OperationState<out Variables, out Data> {
       sealed interface SequencedOperationState<out Variables, out Data> :
