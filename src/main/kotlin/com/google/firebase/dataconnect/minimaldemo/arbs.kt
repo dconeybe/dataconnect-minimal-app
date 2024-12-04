@@ -1,12 +1,14 @@
 package com.google.firebase.dataconnect.minimaldemo
 
+import android.annotation.SuppressLint
+import com.google.firebase.Timestamp
 import com.google.firebase.dataconnect.LocalDate
 import com.google.firebase.dataconnect.OptionalVariable
 import com.google.firebase.dataconnect.minimaldemo.connector.InsertItemMutation
+import com.google.firebase.dataconnect.toJavaLocalDate
 import io.kotest.property.Arb
 import io.kotest.property.RandomSource
 import io.kotest.property.Sample
-import io.kotest.property.arbitrary.arbitrary
 import io.kotest.property.arbitrary.boolean
 import io.kotest.property.arbitrary.double
 import io.kotest.property.arbitrary.enum
@@ -17,24 +19,12 @@ import io.kotest.property.arbitrary.map
 import io.kotest.property.arbitrary.next
 import io.kotest.property.arbs.fooddrink.iceCreamFlavors
 import io.kotest.property.asSample
+import java.time.Instant
 import java.time.Month
-
-enum class Optionality {
-  Null,
-  NonNull,
-  Absent,
-}
-
-fun <T> Arb.Companion.optionalVariable(
-  arb: Arb<T>,
-  optionality: Arb<Optionality> = Arb.enum<Optionality>(),
-): Arb<OptionalVariable<T?>> = arbitrary {
-  when (optionality.bind()) {
-    Optionality.Absent -> OptionalVariable.Undefined
-    Optionality.Null -> OptionalVariable.Value(null)
-    Optionality.NonNull -> OptionalVariable.Value(arb.bind())
-  }
-}
+import java.time.Year
+import java.time.ZoneId
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 fun Arb.Companion.insertItemVariables(): Arb<InsertItemMutation.Variables> =
   InsertItemMutationVariablesArb()
@@ -46,6 +36,7 @@ private class InsertItemMutationVariablesArb(
   private val float: Arb<Double> = Arb.double().filterNot { it.isNaN() || it.isInfinite() },
   private val boolean: Arb<Boolean> = Arb.boolean(),
   private val date: Arb<LocalDate> = Arb.dataConnectLocalDate(),
+  private val timestamp: Arb<Timestamp> = Arb.firebaseTimestamp(),
 ) : Arb<InsertItemMutation.Variables>() {
   override fun edgecase(rs: RandomSource): InsertItemMutation.Variables =
     InsertItemMutation.Variables(
@@ -55,7 +46,7 @@ private class InsertItemMutationVariablesArb(
       float = float.optionalEdgeCase(rs),
       boolean = boolean.optionalEdgeCase(rs),
       date = date.optionalEdgeCase(rs),
-      timestamp = OptionalVariable.Undefined,
+      timestamp = timestamp.optionalEdgeCase(rs),
       any = OptionalVariable.Undefined,
     )
 
@@ -67,7 +58,7 @@ private class InsertItemMutationVariablesArb(
         float = OptionalVariable.Value(float.next(rs)),
         boolean = OptionalVariable.Value(boolean.next(rs)),
         date = OptionalVariable.Value(date.next(rs)),
-        timestamp = OptionalVariable.Undefined,
+        timestamp = OptionalVariable.Value(timestamp.next(rs)),
         any = OptionalVariable.Undefined,
       )
       .asSample()
@@ -77,32 +68,61 @@ fun Arb.Companion.dataConnectLocalDate(): Arb<LocalDate> = DataConnectLocalDateA
 
 private class DataConnectLocalDateArb : Arb<LocalDate>() {
 
-  private val yearArb = Arb.int(MIN_YEAR..MAX_YEAR)
-  private val monthArb = Arb.enum<Month>()
+  private val yearArb: Arb<Year> = Arb.int(MIN_YEAR..MAX_YEAR).map { Year.of(it) }
+  private val monthArb: Arb<Month> = Arb.enum<Month>()
+  private val dayArbByMonthLengthLock = ReentrantLock()
   private val dayArbByMonthLength = mutableMapOf<Int, Arb<Int>>()
 
   override fun edgecase(rs: RandomSource): LocalDate {
     val year = yearArb.maybeEdgeCase(rs, edgeCaseProbability = 0.33f)
     val month = monthArb.maybeEdgeCase(rs, edgeCaseProbability = 0.33f)
-    val day = dayArbFor(month, year).maybeEdgeCase(rs, edgeCaseProbability = 0.33f)
-    return LocalDate(year = year, month = month.value, day = day)
+    val day = Arb.dayOfMonth(year, month).maybeEdgeCase(rs, edgeCaseProbability = 0.33f)
+    return LocalDate(year = year.value, month = month.value, day = day)
   }
 
   override fun sample(rs: RandomSource): Sample<LocalDate> {
     val year = yearArb.sample(rs).value
     val month = monthArb.sample(rs).value
-    val day = dayArbFor(month, year).sample(rs).value
-    return LocalDate(year = year, month = month.value, day = day).asSample()
+    val day = Arb.dayOfMonth(year, month).sample(rs).value
+    return LocalDate(year = year.value, month = month.value, day = day).asSample()
   }
 
-  private fun dayArbFor(month: Month, year: Int): Arb<Int> {
-    val monthLength = java.time.Year.of(year).atMonth(month).lengthOfMonth()
-    return dayArbByMonthLength.getOrPut(monthLength) { Arb.int(0..monthLength) }
+  private fun Arb.Companion.dayOfMonth(year: Year, month: Month): Arb<Int> {
+    val monthLength = year.atMonth(month).lengthOfMonth()
+    return dayArbByMonthLengthLock.withLock {
+      dayArbByMonthLength.getOrPut(monthLength) { Arb.int(1..monthLength) }
+    }
   }
 
   companion object {
     const val MIN_YEAR = 1583
     const val MAX_YEAR = 9999
+  }
+}
+
+fun Arb.Companion.firebaseTimestamp(): Arb<Timestamp> = FirebaseTimestampArb()
+
+private class FirebaseTimestampArb : Arb<Timestamp>() {
+
+  private val localDateArb = Arb.dataConnectLocalDate()
+
+  override fun edgecase(rs: RandomSource) =
+    localDateArb.maybeEdgeCase(rs, edgeCaseProbability = 0.33f).toTimestampAtStartOfDay()
+
+  override fun sample(rs: RandomSource) = localDateArb.next(rs).toTimestampAtStartOfDay().asSample()
+
+  companion object {
+
+    // Suppress the spurious "Call requires API level 26" warning, which can be safely ignored
+    // because this application uses "desugaring" to ensure access to the java.time APIs even in
+    // Android API versions less than 26.
+    // See https://developer.android.com/studio/write/java8-support-table for details.
+    @SuppressLint("NewApi")
+    private fun LocalDate.toTimestampAtStartOfDay(): Timestamp {
+      val zoneId = ZoneId.systemDefault()
+      val instant: Instant = toJavaLocalDate().atStartOfDay(zoneId).toInstant()
+      return Timestamp(instant)
+    }
   }
 }
 
