@@ -8,7 +8,10 @@ import com.google.firebase.dataconnect.OptionalVariable
 import com.google.firebase.dataconnect.minimaldemo.connector.GetItemByKeyQuery
 import com.google.firebase.dataconnect.minimaldemo.connector.InsertItemMutation
 import com.google.firebase.dataconnect.toJavaLocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 fun InsertItemMutation.Variables.toDisplayString(): String =
   displayStringForItem(
@@ -61,7 +64,11 @@ private fun <T : Any> OptionalVariable<T?>.toDisplayString(stringer: (T) -> Stri
   }
 
 private fun LocalDate.toDisplayString(): String =
-  toJavaLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE)
+  toJavaLocalDate().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG))
 
 @SuppressLint("NewApi")
-private fun Timestamp.toDisplayString(): String = DateTimeFormatter.ISO_INSTANT.format(toInstant())
+private fun Timestamp.toDisplayString(): String =
+  DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG)
+    .withLocale(Locale.getDefault())
+    .withZone(ZoneId.systemDefault())
+    .format(toInstant())

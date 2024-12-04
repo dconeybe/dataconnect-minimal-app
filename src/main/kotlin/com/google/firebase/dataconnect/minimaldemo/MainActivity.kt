@@ -90,10 +90,11 @@ class MainActivity : AppCompatActivity() {
       state.getItem !is OperationState.InProgress && state.lastInsertedKey !== null
 
     viewBinding.progressText.text =
-      if (
-        insertSequenceNumber !== null &&
-          (getSequenceNumber === null || insertSequenceNumber > getSequenceNumber)
-      ) {
+      if (getSequenceNumber === null) {
+        insertProgressText
+      } else if (insertSequenceNumber === null) {
+        getProgressText
+      } else if (insertSequenceNumber > getSequenceNumber) {
         insertProgressText
       } else {
         getProgressText
