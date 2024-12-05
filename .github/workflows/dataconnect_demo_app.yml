@@ -59,7 +59,21 @@ jobs:
           firebase --version
           ./gradlew --version
 
-      - run: ./gradlew --no-daemon build
+      - run: ./gradlew --no-daemon --profile build
+
+      - uses: upload-artifact@v4
+        with:
+          name: Compiled APKs
+          path: firebase-dataconnect/demo/build/**/*.apk
+          if-no-files-found: warn
+          compression-level: 0
+
+      - uses: upload-artifact@v4
+        with:
+          name: Gradle Build Reports
+          path: firebase-dataconnect/demo/build/reports/
+          if-no-files-found: warn
+          compression-level: 9
 
   spotlessCheck:
     continue-on-error: false
