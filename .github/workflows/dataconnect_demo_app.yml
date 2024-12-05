@@ -45,6 +45,8 @@ jobs:
             firebase-dataconnect/demo/gradle.properties
             firebase-dataconnect/demo/gradle/wrapper/gradle-wrapper.properties
 
+      - run: sed -i -e /jvmargs/d gradle.properties # avoid forking a gradle daemon unnecessarily
+
       - name: tool versions
         continue-on-error: true
         run: |
@@ -59,7 +61,7 @@ jobs:
           firebase --version
           ./gradlew --version
 
-      - run: ./gradlew --no-daemon --profile build
+      - run: ./gradlew --no-daemon --info --profile build
 
       - uses: actions/upload-artifact@v4
         with:
@@ -92,6 +94,8 @@ jobs:
             firebase-dataconnect/demo/build.gradle.kts
             firebase-dataconnect/demo/gradle.properties
             firebase-dataconnect/demo/gradle/wrapper/gradle-wrapper.properties
+
+      - run: sed -i -e /jvmargs/d gradle.properties # avoid forking a gradle daemon unnecessarily
 
       - name: tool versions
         continue-on-error: true
