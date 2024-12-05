@@ -45,7 +45,21 @@ jobs:
             firebase-dataconnect/demo/gradle.properties
             firebase-dataconnect/demo/gradle/wrapper/gradle-wrapper.properties
 
-      - run: ./gradlew assemble --no-daemon
+      - name: tool versions
+        continue-on-error: true
+        run: |
+          set +e -xv
+          which java
+          java -version
+          which javac
+          javac -version
+          which node
+          node --version
+          which firebase
+          firebase --version
+          ./gradlew --version
+
+      - run: ./gradlew --no-daemon build
 
   spotlessCheck:
     continue-on-error: false
@@ -65,4 +79,14 @@ jobs:
             firebase-dataconnect/demo/gradle.properties
             firebase-dataconnect/demo/gradle/wrapper/gradle-wrapper.properties
 
-      - run: ./gradlew spotlessCheck --no-daemon
+      - name: tool versions
+        continue-on-error: true
+        run: |
+          set +e -xv
+          which java
+          java -version
+          which javac
+          javac -version
+          ./gradlew --version
+
+      - run: ./gradlew --no-daemon spotlessCheck
