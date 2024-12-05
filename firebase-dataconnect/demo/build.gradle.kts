@@ -256,7 +256,7 @@ run {
       inputDirectory =
         fileTree(layout.projectDirectory.dir("firebase")).apply { exclude("**/*.log") }
 
-      outputDirectory = layout.projectDirectory.dir("dataConnectGeneratedSources")
+      outputDirectory = layout.buildDirectory.dir("dataConnect/generatedSources")
 
       firebaseCommand = project.providers.gradleProperty("dataConnect.minimalApp.firebaseCommand")
 
