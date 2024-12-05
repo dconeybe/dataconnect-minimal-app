@@ -34,7 +34,9 @@ jobs:
           java-version: 17
           distribution: temurin
           cache: gradle
-          cache-dependency-path: firebase-dataconnect/demo/build.gradle.kts firebase-dataconnect/demo/gradle.properties firebase-dataconnect/demo/gradle/wrapper/gradle-wrapper.properties
+          cache-dependency-path: firebase-dataconnect/demo/build.gradle.kts
+          cache-dependency-path: firebase-dataconnect/demo/gradle.properties
+          cache-dependency-path: firebase-dataconnect/demo/gradle/wrapper/gradle-wrapper.properties
 
       - run: ./gradlew assemble
 
@@ -49,6 +51,8 @@ jobs:
           java-version: 17
           distribution: temurin
           cache: gradle
-          cache-dependency-path: firebase-dataconnect/demo/build.gradle.kts firebase-dataconnect/demo/gradle.properties firebase-dataconnect/demo/gradle/wrapper/gradle-wrapper.properties
+          cache-dependency-path: firebase-dataconnect/demo/build.gradle.kts
+          cache-dependency-path: firebase-dataconnect/demo/gradle.properties
+          cache-dependency-path: firebase-dataconnect/demo/gradle/wrapper/gradle-wrapper.properties
 
       - run: ./gradlew spotlessCheck
