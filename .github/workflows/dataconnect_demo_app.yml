@@ -25,7 +25,7 @@ jobs:
         with:
           sparse-checkout: firebase-dataconnect/demo
 
-      - run: echo "13.27.0" >firebase-tools-version.txt
+      - run: echo "13.25.0" >firebase-tools-version.txt
 
       - uses: actions/setup-node@v3
         with:
@@ -33,7 +33,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: firebase-dataconnect/demo/firebase-tools-version.txt
 
-      - run: npm install -g firebase-tools@13.27.0
+      - run: npm install -g firebase-tools@$(cat firebase-tools-version.txt)
 
       - uses: actions/setup-java@v4
         with:
