@@ -61,7 +61,7 @@ jobs:
           firebase --version
           ./gradlew --version
 
-      - run: ./gradlew --no-daemon --info --profile build
+      - run: JAVA_OPTS=-Xmx2g ./gradlew --no-daemon --info --profile build
 
       - uses: actions/upload-artifact@v4
         with:
