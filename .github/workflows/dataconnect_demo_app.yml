@@ -1,6 +1,7 @@
 name: Data Connect Demo App
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - firebase-dataconnect/demo/**
