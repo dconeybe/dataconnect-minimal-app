@@ -258,7 +258,10 @@ run {
 
       outputDirectory = layout.buildDirectory.dir("dataConnect/generatedSources")
 
-      firebaseCommand = project.providers.gradleProperty("dataConnect.minimalApp.firebaseCommand")
+      firebaseCommand =
+        project.providers
+          .gradleProperty("dataConnect.minimalApp.firebaseCommand")
+          .orElse("firebase")
 
       nodeExecutableDirectory =
         project.providers.gradleProperty("dataConnect.minimalApp.nodeExecutableDirectory").map {
