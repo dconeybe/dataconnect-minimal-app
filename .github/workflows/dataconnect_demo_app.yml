@@ -22,7 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        sparse-checkout: firebase-dataconnect/demo
+        with:
+          sparse-checkout: firebase-dataconnect/demo
 
       - run: echo "13.27.0" >firebase-tools-version.txt
 
@@ -51,7 +52,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        sparse-checkout: firebase-dataconnect/demo
+        with:
+          sparse-checkout: firebase-dataconnect/demo
 
       - uses: actions/setup-java@v4
         with:
