@@ -26,7 +26,6 @@ jobs:
           sparse-checkout: firebase-dataconnect/demo
 
       - run: echo "13.27.0" >firebase-tools-version.txt
-      - run: find .
 
       - uses: actions/setup-node@v3
         with:
