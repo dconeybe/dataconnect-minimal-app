@@ -56,7 +56,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: firebase-dataconnect/demo/firebase-tools/package*.json
-          key: package_json_lock-${{ env.FDC_FIREBASE_TOOLS_VERSION }}
+          key: firebase_tools_package_json-${{ env.FDC_FIREBASE_TOOLS_VERSION }}
 
       - name: install firebase-tools from scratch
         if: steps.package_json_lock.outputs.cache-hit != 'true'
