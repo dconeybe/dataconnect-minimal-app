@@ -97,7 +97,14 @@ jobs:
           firebase --version
           ./gradlew --version
 
-      - run: ./gradlew --no-daemon --profile build ${{ (inputs.gradleInfoLog && '--info') || '' }}
+      - name: ./gradlew build
+      - run: |
+        ./gradlew \
+        --no-daemon \
+        ${{ (inputs.gradleInfoLog && '--info') || '' }} \
+        --profile \
+        -PdataConnect.minimalApp.firebaseCommand="$PWD/firebase-tools/node_modules/.bin/firebase" \
+        build
 
       - uses: actions/upload-artifact@v4
         with:
