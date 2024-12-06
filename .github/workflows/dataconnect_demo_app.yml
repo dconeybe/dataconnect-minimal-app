@@ -47,7 +47,7 @@ jobs:
             firebase-dataconnect/demo/build.gradle.kts
             firebase-dataconnect/demo/gradle.properties
             firebase-dataconnect/demo/gradle/wrapper/gradle-wrapper.properties
-            firebase-dataconnect/demo/github_actions_cache_key.txt
+            firebase-dataconnect/demo/github_actions_demo_assemble_cache_key.txt
 
       - name: tool versions
         continue-on-error: true
