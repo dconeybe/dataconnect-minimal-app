@@ -98,7 +98,7 @@ jobs:
           ./gradlew --version
 
       - name: ./gradlew build
-      - run: |
+        run: |
           ./gradlew \
           --no-daemon \
           ${{ (inputs.gradleInfoLog && '--info') || '' }} \
