@@ -30,7 +30,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  assemble:
+  test:
     continue-on-error: false
     runs-on: ubuntu-latest
     steps:
@@ -97,14 +97,14 @@ jobs:
           firebase --version
           ./gradlew --version
 
-      - name: ./gradlew build
+      - name: ./gradlew assemble test
         run: |
           ./gradlew \
           --no-daemon \
           ${{ (inputs.gradleInfoLog && '--info') || '' }} \
           --profile \
           -PdataConnect.minimalApp.firebaseCommand="$PWD/firebase-tools/node_modules/.bin/firebase" \
-          build
+          assemble test
 
       - uses: actions/upload-artifact@v4
         with:
