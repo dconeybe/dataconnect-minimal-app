@@ -81,14 +81,14 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Compiled APKs
+          name: apks
           path: firebase-dataconnect/demo/build/**/*.apk
           if-no-files-found: warn
           compression-level: 0
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Gradle Build Reports
+          name: gradle_build_reports
           path: firebase-dataconnect/demo/build/reports/
           if-no-files-found: warn
           compression-level: 9
