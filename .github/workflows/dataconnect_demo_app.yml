@@ -86,7 +86,7 @@ jobs:
       - name: tool versions
         continue-on-error: true
         run: |
-          set +e -xv
+          set +e -v
           which java
           java -version
           which javac
@@ -99,6 +99,7 @@ jobs:
 
       - name: ./gradlew assemble test
         run: |
+          set -x
           ./gradlew \
           --no-daemon \
           ${{ (inputs.gradleInfoLog && '--info') || '' }} \
@@ -145,11 +146,17 @@ jobs:
       - name: tool versions
         continue-on-error: true
         run: |
-          set +e -xv
+          set +e -v
           which java
           java -version
           which javac
           javac -version
           ./gradlew --version
 
-      - run: ./gradlew --no-daemon spotlessCheck ${{ (inputs.gradleInfoLog && '--info') || '' }}
+      - name: ./gradlew spotlessCheck
+        run: |
+          set -x
+          ./gradlew \
+          --no-daemon \
+          ${{ (inputs.gradleInfoLog && '--info') || '' }} \
+          spotlessCheck
