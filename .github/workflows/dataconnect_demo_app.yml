@@ -6,7 +6,8 @@ on:
       nodeVersion:
       firebaseToolsVersion:
       javaVersion:
-      extraGradleArgs:
+      gradleInfoLog:
+        type: boolean
   pull_request:
     paths:
       - firebase-dataconnect/demo/**
@@ -77,7 +78,7 @@ jobs:
           firebase --version
           ./gradlew --version
 
-      - run: ./gradlew --no-daemon --profile build ${{ inputs.extraGradleArgs }}
+      - run: ./gradlew --no-daemon --profile build ${{ (inputs.gradleInfoLog && '--info') || '' }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -125,4 +126,4 @@ jobs:
           javac -version
           ./gradlew --version
 
-      - run: ./gradlew --no-daemon spotlessCheck ${{ inputs.extraGradleArgs }}
+      - run: ./gradlew --no-daemon spotlessCheck ${{ (inputs.gradleInfoLog && '--info') || '' }}
