@@ -9,6 +9,11 @@ on:
   schedule:
     - cron: '0 11 * * *' # Run nightly at 11am UTC (3am Pacific, 6am Eastern)
 
+env:
+  FDC_NODE_VERSION: 20
+  FDC_FIREBASE_TOOLS_VERSION: 13.25.0
+  FDC_JAVA_VERSION: 17
+
 defaults:
   run:
     shell: bash
@@ -27,20 +32,24 @@ jobs:
         with:
           sparse-checkout: firebase-dataconnect/demo
 
-      - run: echo "x366vcw7mg" >github_actions_demo_assemble_cache_key.txt
+      - name: Create Cache Key Files
+        run: |
+          echo "x366vcw7mg" >github_actions_demo_assemble_cache_key.txt
+          echo "${{ env.FDC_FIREBASE_TOOLS_VERSION }}" >github_actions_demo_assemble_firebase_tools_version.txt
 
       - uses: actions/setup-node@v3
         with:
-          node-version: 20
+          node-version: ${{ env.FDC_NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: |
             firebase-dataconnect/demo/github_actions_demo_assemble_cache_key.txt
+            firebase-dataconnect/demo/github_actions_demo_assemble_firebase_tools_version.txt
 
-      - run: npm install -g firebase-tools@13.25.0
+      - run: npm install -g firebase-tools@${{ env.FDC_FIREBASE_TOOLS_VERSION }}
 
       - uses: actions/setup-java@v4
         with:
-          java-version: 17
+          java-version: ${{ env.FDC_JAVA_VERSION }}
           distribution: temurin
           cache: gradle
           cache-dependency-path: |
@@ -87,11 +96,12 @@ jobs:
         with:
           sparse-checkout: firebase-dataconnect/demo
 
-      - run: echo "h99ee4egfd" >github_actions_demo_spotless_cache_key.txt
+      - name: Create Cache Key Files
+        run: echo "h99ee4egfd" >github_actions_demo_spotless_cache_key.txt
 
       - uses: actions/setup-java@v4
         with:
-          java-version: 17
+          java-version: ${{ env.FDC_JAVA_VERSION }}
           distribution: temurin
           cache: gradle
           cache-dependency-path: |
